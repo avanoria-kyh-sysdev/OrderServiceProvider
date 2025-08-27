@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebApi.Data.Contexts;
 using WebApi.Data.Entities;
+using WebApi.Grpc;
 
 namespace WebApi.Services;
 
-public class OrderService(DataContext context) : IOrderService
+public class OrderService(DataContext context, CustomerGrpcService.CustomerGrpcServiceClient customerGrpcClient) : IOrderService
 {
     private readonly DataContext _context = context;
+    private readonly CustomerGrpcService.CustomerGrpcServiceClient _customerGrpcClient = customerGrpcClient;
 
     public async Task<bool> CreateOrderAsync(OrderEntity orderEntity)
     {
@@ -14,9 +16,8 @@ public class OrderService(DataContext context) : IOrderService
         orderEntity.DueDate = DateTime.Now.AddDays(30);
 
         // Customer Information
-
-
-
+        var customer = await _customerGrpcClient.GetCustomerByIdAsync(new GetCustomerByIdRequest { Id = orderEntity.CustomerId });
+        orderEntity.CustomerName = customer.CustomerName;
 
         await _context.Orders.AddAsync(orderEntity);
         return await _context.SaveChangesAsync() > 0;
